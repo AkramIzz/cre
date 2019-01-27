@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -20,7 +21,7 @@ typedef struct re_compiled_t {
 } re_compiled;
 
 typedef struct re_iter_t {
-   re_compiled pattern;
+   re_compiled *pattern;
    char **text;
    char **last_match;
 } re_iter;
@@ -29,11 +30,61 @@ re_compiled compile(const char *regex) {
 
 }
 
-re_match* match(re_compiled pattern, const char *text) {
-
+static bool char_in_str(char c, char *str) {
+   for (char *ch = str; *ch != '\0'; ++ch) {
+      if (c == *ch) {
+         return true;
+      }
+   }
+   return false;
 }
 
-re_match* find_all(re_compiled pattern, const char *text) {
+void print_state(re_state *init, re_state *state) {
+   printf("state: %li\tfinal: %i\tlinks: %i\n", state-init, state->is_final, state->links_num);
+   for (int i = 0; i < state->links_num; ++i) {
+      printf("   ->link\taccepts:%s\tnext: %li\n",
+         state->links[i].accept, state->links[i].next-init
+      );
+   }
+}
+
+re_match* match(re_compiled *pattern, const char *text) {
+   char terminating_char = '\0';
+   for (const char *begin = text; *begin != terminating_char; begin++) {
+      re_state *current_state = pattern->states;
+      
+      const char *end = begin;
+      bool char_match = true;
+      while (!current_state->is_final 
+            && *end != '\0'
+            && char_match) {
+         print_state(pattern->states, current_state);
+         printf("%c\n\n", *end);
+         // accept a character
+         char_match = false;
+         for (int i = 0; i < current_state->links_num; ++i) {
+            if (char_in_str(*end, current_state->links[i].accept)) {
+               current_state = current_state->links[i].next;
+               end++;
+               char_match = true;
+               break;
+            }
+         }
+      }
+
+      // match found.
+      if (current_state->is_final) {
+         re_match *m = malloc(sizeof(re_match));
+         m->begin = (int) (begin - text);
+         m->end = (int) (end - text) - 1; // *end itself isn't part of the match
+         return m;
+      }
+   }
+   // no match found
+   return NULL;
+}
+
+re_match* find_all(re_compiled *pattern, const char *text) {
    re_match *match, *matches = malloc(sizeof(match) * MAX_MATCHES_SIZE);
    re_match *last_match = matches;
    
@@ -50,7 +101,7 @@ re_match* find_all(re_compiled pattern, const char *text) {
    return matches;
 }
 
-re_iter find_iter(re_compiled pattern, const char *text) {
+re_iter find_iter(re_compiled *pattern, const char *text) {
    re_iter iter;
    iter.pattern = pattern;
    iter.text = malloc(sizeof(char *));

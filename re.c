@@ -36,8 +36,10 @@ re_match* match(re_compiled *pattern, const char *text) {
       while (!current_state->is_final 
             && *end != '\0'
             && char_match) {
+#ifdef DEBUG_FSM_EXECUTION
          print_state(pattern->states, current_state);
-         printf("%c\n\n", *end);
+         printf("   input: %c\n\n", *end);
+#endif
          // accept a character
          char_match = false;
          for (int i = 0; i < current_state->links_num; ++i) {

@@ -4,28 +4,6 @@
 
 #include "re.h"
 
-typedef struct {
-   char *accept;
-   struct re_state_t *next;
-} re_link;
-
-typedef struct re_state_t {
-   bool is_final;
-   re_link *links;
-   int links_num;
-} re_state;
-
-typedef struct re_compiled_t {
-   re_state *states;
-   int states_num;
-} re_compiled;
-
-typedef struct re_iter_t {
-   re_compiled *pattern;
-   char **text;
-   char **last_match;
-} re_iter;
-
 re_compiled compile(const char *regex) {
 
 }
